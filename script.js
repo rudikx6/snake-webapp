@@ -14,6 +14,34 @@ let dy = 0;
 let score = 0;
 let gameLoop = null;
 
+// Audio setup
+let audioCtx = null;
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+}
+function playTone(frequency, duration, type = 'sine') {
+    initAudio();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(0.001, audioCtx.currentTime); // start quiet
+    gainNode.gain.exponentialRampToValueAtTime(0.1, audioCtx.currentTime + 0.01); // attack
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration); // release
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + duration);
+}
+function playEatSound() {
+    playTone(440, 0.1, 'sine');
+}
+function playGameOverSound() {
+    playTone(220, 0.3, 'triangle');
+}
+
 function clearCanvas() {
     ctx.fillStyle = '#111';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -33,11 +61,19 @@ function drawFood() {
 
 function moveSnake() {
     const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+
+    // Wrap around walls
+    if (head.x < 0) head.x = tileCount - 1;
+    if (head.x >= tileCount) head.x = 0;
+    if (head.y < 0) head.y = tileCount - 1;
+    if (head.y >= tileCount) head.y = 0;
+
     snake.unshift(head);
-    
+
     if (head.x === food.x && head.y === food.y) {
         score++;
         scoreValue.textContent = score;
+        playEatSound();
         generateFood();
     } else {
         snake.pop();
@@ -54,9 +90,7 @@ function generateFood() {
 
 function checkCollision() {
     const head = snake[0];
-    if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
-        return true;
-    }
+    // Self collision (excluding head)
     for (let i = 1; i < snake.length; i++) {
         if (head.x === snake[i].x && head.y === snake[i].y) {
             return true;
@@ -72,6 +106,7 @@ function gameLoopFn() {
     drawSnake();
     if (checkCollision()) {
         clearInterval(gameLoop);
+        playGameOverSound();
         restartBtn.style.display = 'inline-block';
     }
 }
