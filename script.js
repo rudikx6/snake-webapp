@@ -2,6 +2,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreValue = document.getElementById('scoreValue');
 const restartBtn = document.getElementById('restartBtn');
+const touchControls = document.getElementById('touchControls');
 
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
@@ -46,7 +47,6 @@ function moveSnake() {
 function generateFood() {
     food.x = Math.floor(Math.random() * tileCount);
     food.y = Math.floor(Math.random() * tileCount);
-    // ensure not on snake
     if (snake.some(segment => segment.x === food.x && segment.y === food.y)) {
         generateFood();
     }
@@ -54,11 +54,9 @@ function generateFood() {
 
 function checkCollision() {
     const head = snake[0];
-    // wall collision
     if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
         return true;
     }
-    // self collision
     for (let i = 1; i < snake.length; i++) {
         if (head.x === snake[i].x && head.y === snake[i].y) {
             return true;
@@ -78,21 +76,20 @@ function gameLoopFn() {
     }
 }
 
-function changeDirection(e) {
-    const key = e.key;
-    const LEFT = 37;
-    const UP = 38;
-    const RIGHT = 39;
-    const DOWN = 40;
-    const goingUp = dy === -1;
-    const goingDown = dy === 1;
-    const goingRight = dx === 1;
-    const goingLeft = dx === -1;
-    
-    if ((key === 'ArrowLeft' || key === 'a') && !goingRight) { dx = -1; dy = 0; }
-    if ((key === 'ArrowUp' || key === 'w') && !goingDown) { dx = 0; dy = -1; }
-    if ((key === 'ArrowRight' || key === 'd') && !goingLeft) { dx = 1; dy = 0; }
-    if ((key === 'ArrowDown' || key === 's') && !goingUp) { dx = 0; dy = 1; }
+function setDirection(newDx, newDy) {
+    // prevent 180-degree turn
+    if (dx === -newDx && dy === -newDy) return;
+    dx = newDx;
+    dy = newDy;
+}
+
+function handleDirectionFromButton(dir) {
+    switch(dir) {
+        case 'up':    setDirection(0, -1); break;
+        case 'down':  setDirection(0, 1); break;
+        case 'left':  setDirection(-1, 0); break;
+        case 'right': setDirection(1, 0); break;
+    }
 }
 
 function startGame() {
@@ -106,7 +103,37 @@ function startGame() {
     gameLoop = setInterval(gameLoopFn, 100);
 }
 
-document.addEventListener('keydown', changeDirection);
+// Keyboard controls
+document.addEventListener('keydown', e => {
+    const key = e.key;
+    if (key === 'ArrowLeft' || key === 'a') handleDirectionFromButton('left');
+    if (key === 'ArrowUp' || key === 'w')   handleDirectionFromButton('up');
+    if (key === 'ArrowRight' || key === 'd')handleDirectionFromButton('right');
+    if (key === 'ArrowDown' || key === 's') handleDirectionFromButton('down');
+});
+
+// Touch controls via buttons
+if (touchControls) {
+    const buttons = touchControls.querySelectorAll('.controlBtn');
+    buttons.forEach(btn => {
+        btn.addEventListener('touchstart', e => {
+            e.preventDefault(); // prevent ghost click
+            const dir = btn.getAttribute('data-dir');
+            handleDirectionFromButton(dir);
+        }, {passive: false});
+        btn.addEventListener('click', e => {
+            e.preventDefault();
+            const dir = btn.getAttribute('data-dir');
+            handleDirectionFromButton(dir);
+        });
+    });
+}
+
+// Prevent page scrolling on touch gestures
+document.addEventListener('touchmove', e => e.preventDefault(), {passive: false});
+// Also prevent zoom double-tap
+document.addEventListener('gesturestart', e => e.preventDefault());
+
 restartBtn.addEventListener('click', startGame);
 
 startGame();
