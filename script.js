@@ -2,7 +2,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreValue = document.getElementById('scoreValue');
 const restartBtn = document.getElementById('restartBtn');
-const touchControls = document.getElementById('touchControls');
+const joystickContainer = document.getElementById('joystickContainer');
 
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
@@ -27,9 +27,9 @@ function playTone(frequency, duration, type = 'sine') {
     const gainNode = audioCtx.createGain();
     oscillator.type = type;
     oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-    gainNode.gain.setValueAtTime(0.001, audioCtx.currentTime); // start quiet
-    gainNode.gain.exponentialRampToValueAtTime(0.1, audioCtx.currentTime + 0.01); // attack
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration); // release
+    gainNode.gain.setValueAtTime(0.001, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.1, audioCtx.currentTime + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
     oscillator.connect(gainNode);
     gainNode.connect(audioCtx.destination);
     oscillator.start();
@@ -90,7 +90,6 @@ function generateFood() {
 
 function checkCollision() {
     const head = snake[0];
-    // Self collision (excluding head)
     for (let i = 1; i < snake.length; i++) {
         if (head.x === snake[i].x && head.y === snake[i].y) {
             return true;
@@ -112,19 +111,9 @@ function gameLoopFn() {
 }
 
 function setDirection(newDx, newDy) {
-    // prevent 180-degree turn
     if (dx === -newDx && dy === -newDy) return;
     dx = newDx;
     dy = newDy;
-}
-
-function handleDirectionFromButton(dir) {
-    switch(dir) {
-        case 'up':    setDirection(0, -1); break;
-        case 'down':  setDirection(0, 1); break;
-        case 'left':  setDirection(-1, 0); break;
-        case 'right': setDirection(1, 0); break;
-    }
 }
 
 function startGame() {
@@ -141,32 +130,30 @@ function startGame() {
 // Keyboard controls
 document.addEventListener('keydown', e => {
     const key = e.key;
-    if (key === 'ArrowLeft' || key === 'a') handleDirectionFromButton('left');
-    if (key === 'ArrowUp' || key === 'w')   handleDirectionFromButton('up');
-    if (key === 'ArrowRight' || key === 'd')handleDirectionFromButton('right');
-    if (key === 'ArrowDown' || key === 's') handleDirectionFromButton('down');
+    if (key === 'ArrowLeft' || key === 'a') setDirection(-1, 0);
+    if (key === 'ArrowUp' || key === 'w')   setDirection(0, -1);
+    if (key === 'ArrowRight' || key === 'd')setDirection(1, 0);
+    if (key === 'ArrowDown' || key === 's') setDirection(0, 1);
 });
 
-// Touch controls via buttons
-if (touchControls) {
-    const buttons = touchControls.querySelectorAll('.controlBtn');
-    buttons.forEach(btn => {
-        btn.addEventListener('touchstart', e => {
-            e.preventDefault(); // prevent ghost click
-            const dir = btn.getAttribute('data-dir');
-            handleDirectionFromButton(dir);
-        }, {passive: false});
-        btn.addEventListener('click', e => {
-            e.preventDefault();
-            const dir = btn.getAttribute('data-dir');
-            handleDirectionFromButton(dir);
-        });
-    });
-}
+// Joystick via nipplejs
+const joystick = nipplejs.create({
+    zone: joystickContainer,
+    mode: 'static',
+    position: { left: '50%', top: '50%' },
+    color: '#fff',
+    threshold: 0.1,
+    size: 100
+});
+
+joystick.on('dir:up',    evt => setDirection(0, -1));
+joystick.on('dir:down',  evt => setDirection(0, 1));
+joystick.on('dir:left',  evt => setDirection(-1, 0));
+joystick.on('dir:right', evt => setDirection(1, 0));
+// optional: on 'end' stop? we keep last direction until new input.
 
 // Prevent page scrolling on touch gestures
 document.addEventListener('touchmove', e => e.preventDefault(), {passive: false});
-// Also prevent zoom double-tap
 document.addEventListener('gesturestart', e => e.preventDefault());
 
 restartBtn.addEventListener('click', startGame);

@@ -11,10 +11,14 @@
         <h1>Snake</h1>
         <canvas id="gameCanvas" width="400" height="400"></canvas>
         <div class="score">Score: <span id="scoreValue">0</span></div>
-        <div id="joystickContainer"></div>
+        <div id="touchControls">
+            <button class="controlBtn" data-dir="up">▲</button>
+            <button class="controlBtn" data-dir="left">◀</button>
+            <button class="controlBtn" data-dir="right">▶</button>
+            <button class="controlBtn" data-dir="down">▼</button>
+        </div>
         <button id="restartBtn" style="display:none;">Restart</button>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/nipplejs@0.10.0/dist/nipplejs.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

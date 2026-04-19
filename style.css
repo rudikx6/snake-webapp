@@ -27,27 +27,13 @@ canvas {
     margin-top: 10px;
     font-size: 1.2em;
 }
-#touchControls {
+#joystickContainer {
     position: absolute;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    display: flex;
-    gap: 10px;
-}
-.controlBtn {
-    background: #444;
-    border: none;
-    color: #fff;
-    font-size: 2em;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    cursor: pointer;
-    user-select: none;
-}
-.controlBtn:active {
-    background: #555;
+    width: 150px;
+    height: 150px;
 }
 button#restartBtn {
     margin-top: 10px;
