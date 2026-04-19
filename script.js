@@ -16,20 +16,24 @@ let gameLoop = null;
 
 // Audio setup
 let audioCtx = null;
-function initAudio() {
+function ensureAudioContext() {
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
+    // resume if suspended (user interaction may have been required)
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
 }
 function playTone(frequency, duration, type = 'sine') {
-    initAudio();
+    ensureAudioContext();
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
     oscillator.type = type;
     oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-    gainNode.gain.setValueAtTime(0.001, audioCtx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.1, audioCtx.currentTime + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.01); // attack
+    gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration); // release
     oscillator.connect(gainNode);
     gainNode.connect(audioCtx.destination);
     oscillator.start();
@@ -127,6 +131,18 @@ function startGame() {
     gameLoop = setInterval(gameLoopFn, 100);
 }
 
+// Initialize audio context on first user interaction
+function initAudioOnInteraction() {
+    ensureAudioContext();
+    // remove listeners after first call
+    document.removeEventListener('keydown', initAudioOnInteraction);
+    document.removeEventListener('mousedown', initAudioOnInteraction);
+    document.removeEventListener('touchstart', initAudioOnInteraction);
+}
+document.addEventListener('keydown', initAudioOnInteraction);
+document.addEventListener('mousedown', initAudioOnInteraction);
+document.addEventListener('touchstart', initAudioOnInteraction);
+
 // Keyboard controls
 document.addEventListener('keydown', e => {
     const key = e.key;
@@ -150,7 +166,6 @@ joystick.on('dir:up',    evt => setDirection(0, -1));
 joystick.on('dir:down',  evt => setDirection(0, 1));
 joystick.on('dir:left',  evt => setDirection(-1, 0));
 joystick.on('dir:right', evt => setDirection(1, 0));
-// optional: on 'end' stop? we keep last direction until new input.
 
 // Prevent page scrolling on touch gestures
 document.addEventListener('touchmove', e => e.preventDefault(), {passive: false});
